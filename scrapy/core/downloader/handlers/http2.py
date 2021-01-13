@@ -10,7 +10,7 @@ from twisted.web.client import URI
 
 from scrapy.core.downloader.contextfactory import load_context_factory_from_settings
 from scrapy.core.downloader.webclient import _parse
-from scrapy.core.http2.agent import H2Agent, H2ConnectionPool, ScrapyProxyH2Agent
+from scrapy.core.http2.agent import H2Agent, H2ConnectionPool, ScrapyProxyH2Agent, ScrapyTunnelingH2Agent
 from scrapy.crawler import Crawler
 from scrapy.http import Request, Response
 from scrapy.settings import Settings
@@ -48,6 +48,7 @@ class H2DownloadHandler:
 class ScrapyH2Agent:
     _Agent = H2Agent
     _ProxyAgent = ScrapyProxyH2Agent
+    _TunnelingAgent = ScrapyTunnelingH2Agent
 
     def __init__(
         self, context_factory,
@@ -78,8 +79,18 @@ class ScrapyH2Agent:
                               "and remove '?noconnect' from the Crawlera URL.")
 
             if scheme == b'https' and not omit_connect_tunnel:
-                # ToDo
-                raise NotImplementedError('Tunneling via CONNECT method using HTTP/2.0 is not yet supported')
+                proxy_auth = request.headers.get(b'Proxy-Authorization', None)
+                proxy_conf = (proxy_host, proxy_port, proxy_auth)
+                return self._TunnelingAgent(
+                    reactor=reactor,
+                    proxy_uri=URI.fromBytes(to_bytes(proxy, encoding='ascii')),
+                    proxy_conf=proxy_conf,
+                    context_factory=self._context_factory,
+                    connect_timeout=timeout,
+                    bind_address=bind_address,
+                    pool=self._pool
+                )
+                
             return self._ProxyAgent(
                 reactor=reactor,
                 context_factory=self._context_factory,

@@ -27,7 +27,6 @@ from scrapy.http import Headers
 from scrapy.responsetypes import responsetypes
 from scrapy.utils.python import to_bytes, to_unicode
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -88,6 +87,16 @@ class HTTP11DownloadHandler:
 
 class TunnelError(Exception):
     """An HTTP CONNECT tunnel could not be established by the proxy."""
+
+    def __init__(self, host, port, extra):
+        self.host = host
+        self.port = port
+        self.extra = extra
+
+    def __str__(self):
+        return "TunnelError: Could not open CONNECT tunnel with proxy %s:%s [%r]" % (
+            self.host, self.port, self.extra
+        )
 
 
 class TunnelingTCP4ClientEndpoint(TCP4ClientEndpoint):
